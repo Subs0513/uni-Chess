@@ -5,7 +5,7 @@
 }
 
 .head {
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .h1 {
@@ -19,11 +19,67 @@
   margin-top: 4px;
 }
 
+.boardWrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+/* 棋盘尺寸由 uvue 动态注入 */
+.board {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.12);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.boardRow {
+  display: flex;
+  flex-direction: row;
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.light { background: #f0d9b5; }
+.dark  { background: #b58863; }
+
+.selected {
+  border: 3px solid rgba(31,111,235,0.9);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
+}
+
+.piece {
+  font-size: 26px;
+  line-height: 26px;
+}
+
 .panel {
   padding: 14px;
   border-radius: 14px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0,0,0,0.08);
+  background: rgba(0,0,0,0.02);
+}
+
+.rowInfo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-top: 1px solid rgba(0,0,0,0.06);
+}
+
+.rowFirst {
+  border-top: none;
+  padding-top: 0;
 }
 
 .label {
@@ -32,32 +88,25 @@
 }
 
 .value {
-  margin-top: 8px;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
 }
 
 .btns {
-  margin-top: 14px;
+  margin-top: 12px;
 }
 
 .btn {
   height: 42px;
   border-radius: 12px;
-  background: rgba(31, 111, 235, 0.12);
-  border: 1px solid rgba(31, 111, 235, 0.25);
+  background: rgba(31,111,235,0.12);
+  border: 1px solid rgba(31,111,235,0.25);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 10px;
 }
 
 .btnText {
   font-size: 14px;
   font-weight: 700;
-}
-
-.ghost {
-  background: rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(0, 0, 0, 0.08);
 }

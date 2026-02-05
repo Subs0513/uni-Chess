@@ -2,20 +2,40 @@
   <view class="page">
     <view class="head">
       <text class="h1">Game</text>
-      <text class="sub">mode: {{ modeText }}</text>
+      <text class="sub">{{ turnText }}</text>
+    </view>
+
+    <view class="boardWrap">
+      <view class="board" :style="boardStyle">
+        <view v-for="r in rows" :key="'row_' + r" class="boardRow" :style="rowStyle">
+          <view
+            v-for="c in cols"
+            :key="r + '_' + c"
+            class="cell"
+            :class="cellClass(r, c)"
+            :style="cellStyle"
+            @tap="onTapCell(r, c)"
+          >
+            <text class="piece">{{ pieceAt(r, c) }}</text>
+          </view>
+        </view>
+      </view>
     </view>
 
     <view class="panel">
-      <text class="label">当前模式</text>
-      <text class="value">{{ modeText }}</text>
+      <view class="rowInfo rowFirst">
+        <text class="label">当前回合</text>
+        <text class="value">{{ turnText }}</text>
+      </view>
+
+      <view class="rowInfo">
+        <text class="label">选中</text>
+        <text class="value">{{ selectedText }}</text>
+      </view>
 
       <view class="btns">
-        <view class="btn" @tap="backToHome">
-          <text class="btnText">返回 Home</text>
-        </view>
-
-        <view class="btn ghost" @tap="toast('下一步：在此页面加入棋盘 UI')">
-          <text class="btnText">下一步提示</text>
+        <view class="btn" @tap="resetBoard">
+          <text class="btnText">重置棋盘</text>
         </view>
       </view>
     </view>
@@ -23,47 +43,153 @@
 </template>
 
 <script setup lang="uts">
-import { ref, onLoad, computed } from 'vue'
+import { ref, computed } from 'vue'
 
-type Mode = 'ai' | 'online' | 'local'
+/* 行列 */
+const rows = [0,1,2,3,4,5,6,7]
+const cols = [0,1,2,3,4,5,6,7]
 
-const mode = ref<Mode>('local')
+/* 尺寸 */
+const boardPx = ref<number>(320)
 
-// ✅ UTS 更稳的 query 取参方式：先转成 Map/Record 再取值
-onLoad((query: any) => {
-  let m = ''
-
-  if (query != null) {
-    // 这里用 Record<string, any> 更贴近 UTS 可编译结构
-    const q = query as Record<string, any>
-    const raw = q['mode']
-
-    // ✅ 不用 String(...)，用模板字符串转成 string
-    if (raw != null) {
-      m = `${raw}`
-    }
-  }
-
-  if (m === 'ai' || m === 'online' || m === 'local') {
-    mode.value = m as Mode
-  } else {
-    mode.value = 'local'
-  }
-})
-
-const modeText = computed<string>(() => {
-  if (mode.value === 'ai') return '人机对战 (AI)'
-  if (mode.value === 'online') return '联机对战 (Online)'
-  return '本地双人 (Local)'
-})
-
-function backToHome() {
-  uni.switchTab({ url: '/pages/home/home' })
+function clamp(n: number, minV: number, maxV: number): number {
+  if (n < minV) return minV
+  if (n > maxV) return maxV
+  return n
 }
 
-function toast(msg: string) {
-  uni.showToast({ title: msg, icon: 'none' })
+function calcBoardPx(): number {
+  // ✅ 关键：显式使用 GetSystemInfoResult（强类型，允许字段访问）
+  const info: GetSystemInfoResult = uni.getSystemInfoSync()
+  let ww: number = info.windowWidth
+
+  // 页面 padding：18*2=36
+  let px = ww - 36
+  px = clamp(px, 240, 360)
+
+  // 对齐到 8 的倍数
+  px = px - (px % 8)
+  return px
+}
+
+boardPx.value = calcBoardPx()
+
+const cellPx = computed((): number => boardPx.value / 8)
+
+/* style 字符串 */
+const boardStyle = computed((): string => {
+  const px = boardPx.value.toString() + 'px'
+  return 'width:' + px + ';height:' + px + ';'
+})
+
+const rowStyle = computed((): string => {
+  const w = boardPx.value.toString() + 'px'
+  const h = cellPx.value.toString() + 'px'
+  return 'width:' + w + ';height:' + h + ';'
+})
+
+const cellStyle = computed((): string => {
+  const px = cellPx.value.toString() + 'px'
+  return 'width:' + px + ';height:' + px + ';flex:0 0 ' + px + ';'
+})
+
+/* 对弈 */
+type Turn = 'white' | 'black'
+const turn = ref<Turn>('white')
+
+class Pos {
+  r: number
+  c: number
+  constructor(r: number, c: number) {
+    this.r = r
+    this.c = c
+  }
+}
+const selected = ref<Pos | null>(null)
+
+/* Unicode */
+const BR = '♜', BN = '♞', BB = '♝', BQ = '♛', BK = '♚', BP = '♟'
+const WR = '♖', WN = '♘', WB = '♗', WQ = '♕', WK = '♔', WP = '♙'
+
+type Board = (string | null)[][]
+function createInitBoard(): Board {
+  return [
+    [BR, BN, BB, BQ, BK, BB, BN, BR],
+    [BP, BP, BP, BP, BP, BP, BP, BP],
+    [null, null, null, null, null, null, null, null],
+    [null, null, null, null, null, null, null, null],
+    [null, null, null, null, null, null, null, null],
+    [null, null, null, null, null, null, null, null],
+    [WP, WP, WP, WP, WP, WP, WP, WP],
+    [WR, WN, WB, WQ, WK, WB, WN, WR]
+  ]
+}
+const board = ref<Board>(createInitBoard())
+
+function pieceAt(r: number, c: number): string {
+  const p = board.value[r][c]
+  return p == null ? '' : p
+}
+
+function isWhitePiece(p: string): boolean {
+  return p == WR || p == WN || p == WB || p == WQ || p == WK || p == WP
+}
+function isBlackPiece(p: string): boolean {
+  return p == BR || p == BN || p == BB || p == BQ || p == BK || p == BP
+}
+
+function onTapCell(r: number, c: number) {
+  const piece = board.value[r][c]
+
+  if (selected.value == null) {
+    if (piece == null) return
+    if (turn.value == 'white' && isWhitePiece(piece)) selected.value = new Pos(r, c)
+    else if (turn.value == 'black' && isBlackPiece(piece)) selected.value = new Pos(r, c)
+    return
+  }
+
+  const sr = selected.value.r
+  const sc = selected.value.c
+  const moving = board.value[sr][sc]
+  if (moving == null) { selected.value = null; return }
+
+  if (
+    piece != null &&
+    ((turn.value == 'white' && isWhitePiece(piece)) ||
+     (turn.value == 'black' && isBlackPiece(piece)))
+  ) {
+    selected.value = new Pos(r, c)
+    return
+  }
+
+  board.value[r][c] = moving
+  board.value[sr][sc] = null
+  selected.value = null
+  turn.value = (turn.value == 'white') ? 'black' : 'white'
+}
+
+function cellClass(r: number, c: number): string {
+  let cls = ((r + c) % 2 == 1) ? 'dark' : 'light'
+  if (selected.value != null && selected.value.r == r && selected.value.c == c) {
+    cls = cls + ' selected'
+  }
+  return cls
+}
+
+const selectedText = computed((): string => {
+  if (selected.value == null) return '无'
+  const file = String.fromCharCode(97 + selected.value.c)
+  const rank = (8 - selected.value.r).toString()
+  return file + rank
+})
+
+const turnText = computed((): string => (turn.value == 'white' ? '白方回合' : '黑方回合'))
+
+function resetBoard() {
+  board.value = createInitBoard()
+  selected.value = null
+  turn.value = 'white'
 }
 </script>
 
-<style scoped src="./game.css"></style>
+<style src="./game.css"></style>

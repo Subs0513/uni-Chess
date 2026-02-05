@@ -4,13 +4,13 @@
     "compiler_version": "4.87"
   },
   "files": {
-    "pages/index/index.kt": {
-      "class": "GenPagesIndexIndex",
-      "md5": "6f110977e15d31b7b46d52fe0a81d0d586e721b2"
+    "pages/game/game.kt": {
+      "class": "GenPagesGameGame",
+      "md5": "b84979c2c68e7419e1d7a74630652258602028ea"
     },
-    "pages/home/home.kt": {
-      "md5": "b839e90009ed7df9e1cebc03c6560db52f8232fa",
-      "class": "GenPagesHomeHome"
+    "pages/index/index.kt": {
+      "md5": "6f110977e15d31b7b46d52fe0a81d0d586e721b2",
+      "class": "GenPagesIndexIndex"
     },
     "pages/me/me.kt": {
       "class": "GenPagesMeMe",
@@ -18,11 +18,11 @@
     },
     "index.kt": {
       "class": "",
-      "md5": "69fe69c510f0670c3910e210c857903dafeac126"
+      "md5": "371da9d53191d028e6906ace18b8e87f691e8ac0"
     },
-    "pages/game/game.kt": {
-      "md5": "fff206ba4127c5f4f253167907b1143e13795559",
-      "class": "GenPagesGameGame"
+    "pages/home/home.kt": {
+      "md5": "b839e90009ed7df9e1cebc03c6560db52f8232fa",
+      "class": "GenPagesHomeHome"
     }
   }
 }
