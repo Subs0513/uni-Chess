@@ -13,6 +13,8 @@ import io.dcloud.uts.Set
 import io.dcloud.uts.UTSAndroid
 import kotlin.properties.Delegates
 import io.dcloud.uniapp.extapi.getSystemInfoSync as uni_getSystemInfoSync
+import io.dcloud.uniapp.extapi.showActionSheet as uni_showActionSheet
+import io.dcloud.uniapp.extapi.showModal as uni_showModal
 import io.dcloud.uniapp.extapi.showToast as uni_showToast
 open class GenPagesGameGame : BasePage {
     constructor(__ins: ComponentInternalInstance, __renderer: String?) : super(__ins, __renderer) {}
@@ -694,43 +696,197 @@ open class GenPagesGameGame : BasePage {
                 return true
             }
             val isLegalMove = ::gen_isLegalMove_fn
-            fun gen_onTapCell_fn(r: Number, c: Number) {
-                val piece = board.value[r][c]
-                if (selected.value == null) {
-                    if (piece == null) {
-                        return
+            fun gen_hasAnyLegalMove_fn(b: Board, who: Turn): Boolean {
+                run {
+                    var sr: Number = 0
+                    while(sr < 8){
+                        run {
+                            var sc: Number = 0
+                            while(sc < 8){
+                                val p = b[sr][sc]
+                                if (p == null) {
+                                    sc++
+                                    continue
+                                }
+                                if (colorOf(p) !== who) {
+                                    sc++
+                                    continue
+                                }
+                                run {
+                                    var dr: Number = 0
+                                    while(dr < 8){
+                                        run {
+                                            var dc: Number = 0
+                                            while(dc < 8){
+                                                if (isLegalMove(b, sr, sc, dr, dc, who)) {
+                                                    return true
+                                                }
+                                                dc++
+                                            }
+                                        }
+                                        dr++
+                                    }
+                                }
+                                sc++
+                            }
+                        }
+                        sr++
                     }
-                    if (turn.value == "white" && isWhitePiece(piece)) {
-                        selected.value = Pos(r, c)
-                    } else if (turn.value == "black" && isBlackPiece(piece)) {
-                        selected.value = Pos(r, c)
-                    }
-                    return
                 }
-                val sr = selected.value!!.r
-                val sc = selected.value!!.c
-                val moving = board.value[sr][sc]
-                if (moving == null) {
-                    selected.value = null
-                    return
+                return false
+            }
+            val hasAnyLegalMove = ::gen_hasAnyLegalMove_fn
+            fun gen_getEndStateForSideToMove_fn(b: Board, sideToMove: Turn): EndState {
+                val hasMove = hasAnyLegalMove(b, sideToMove)
+                if (hasMove) {
+                    return "playing"
                 }
-                if (piece != null && ((turn.value == "white" && isWhitePiece(piece)) || (turn.value == "black" && isBlackPiece(piece)))) {
-                    selected.value = Pos(r, c)
-                    return
+                val inCheck = isKingInCheck(b, sideToMove)
+                return if (inCheck) {
+                    "checkmate"
+                } else {
+                    "stalemate"
                 }
-                val ok = isLegalMove(board.value, sr, sc, r, c, turn.value)
-                if (!ok) {
-                    uni_showToast(ShowToastOptions(title = "非法走法", icon = "none"))
-                    return
-                }
-                board.value[r][c] = moving
-                board.value[sr][sc] = null
-                selected.value = null
-                turn.value = if ((turn.value == "white")) {
+            }
+            val getEndStateForSideToMove = ::gen_getEndStateForSideToMove_fn
+            fun gen_opposite_fn(who: Turn): Turn {
+                return if (who == "white") {
                     "black"
                 } else {
                     "white"
                 }
+            }
+            val opposite = ::gen_opposite_fn
+            fun gen_promotionPiece_fn(who: Turn, choice: Number): String {
+                if (who == "white") {
+                    if (choice == 1) {
+                        return WR
+                    }
+                    if (choice == 2) {
+                        return WB
+                    }
+                    if (choice == 3) {
+                        return WN
+                    }
+                    return WQ
+                } else {
+                    if (choice == 1) {
+                        return BR
+                    }
+                    if (choice == 2) {
+                        return BB
+                    }
+                    if (choice == 3) {
+                        return BN
+                    }
+                    return BQ
+                }
+            }
+            val promotionPiece = ::gen_promotionPiece_fn
+            fun gen_shouldPromote_fn(p: String, dr: Number): Boolean {
+                if (p == WP && dr == 0) {
+                    return true
+                }
+                if (p == BP && dr == 7) {
+                    return true
+                }
+                return false
+            }
+            val shouldPromote = ::gen_shouldPromote_fn
+            fun gen_askPromotion_fn(who: Turn): UTSPromise<Number> {
+                return UTSPromise(fun(resolve, _reject){
+                    uni_showActionSheet(ShowActionSheetOptions(itemList = _uA(
+                        "升后 ♕/♛",
+                        "升车 ♖/♜",
+                        "升象 ♗/♝",
+                        "升马 ♘/♞"
+                    ), success = fun(res: ShowActionSheetSuccess){
+                        val idx: Number = res.tapIndex
+                        if (idx >= 0 && idx <= 3) {
+                            resolve(idx)
+                        } else {
+                            resolve(0)
+                        }
+                    }
+                    , fail = fun(_){
+                        resolve(0)
+                    }
+                    ))
+                }
+                )
+            }
+            val askPromotion = ::gen_askPromotion_fn
+            fun gen_promoteIfNeeded_fn(b: Board, dr: Number, dc: Number, movedPiece: String, whoMoved: Turn): UTSPromise<Unit> {
+                return wrapUTSPromise(suspend w1@{
+                        if (!shouldPromote(movedPiece, dr)) {
+                            return@w1
+                        }
+                        val choice = await(askPromotion(whoMoved))
+                        b[dr][dc] = promotionPiece(whoMoved, choice)
+                })
+            }
+            val promoteIfNeeded = ::gen_promoteIfNeeded_fn
+            fun gen_resetBoard_fn() {
+                board.value = createInitBoard()
+                selected.value = null
+                turn.value = "white"
+            }
+            val resetBoard = ::gen_resetBoard_fn
+            fun gen_onTapCell_fn(r: Number, c: Number): UTSPromise<Unit> {
+                return wrapUTSPromise(suspend w1@{
+                        val piece = board.value[r][c]
+                        if (selected.value == null) {
+                            if (piece == null) {
+                                return@w1
+                            }
+                            if (turn.value == "white" && isWhitePiece(piece)) {
+                                selected.value = Pos(r, c)
+                            } else if (turn.value == "black" && isBlackPiece(piece)) {
+                                selected.value = Pos(r, c)
+                            }
+                            return@w1
+                        }
+                        val sr = selected.value!!.r
+                        val sc = selected.value!!.c
+                        val moving = board.value[sr][sc]
+                        if (moving == null) {
+                            selected.value = null
+                            return@w1
+                        }
+                        if (piece != null && ((turn.value == "white" && isWhitePiece(piece)) || (turn.value == "black" && isBlackPiece(piece)))) {
+                            selected.value = Pos(r, c)
+                            return@w1
+                        }
+                        val ok = isLegalMove(board.value, sr, sc, r, c, turn.value)
+                        if (!ok) {
+                            uni_showToast(ShowToastOptions(title = "非法走法", icon = "none"))
+                            return@w1
+                        }
+                        val whoMoved: Turn = turn.value
+                        board.value[r][c] = moving
+                        board.value[sr][sc] = null
+                        selected.value = null
+                        await(promoteIfNeeded(board.value, r, c, moving, whoMoved))
+                        val nextTurn: Turn = opposite(whoMoved)
+                        turn.value = nextTurn
+                        val endState = getEndStateForSideToMove(board.value, nextTurn)
+                        if (endState != "playing") {
+                            var msg = ""
+                            if (endState == "checkmate") {
+                                msg = if ((whoMoved == "white")) {
+                                    "白方胜利（将死）！"
+                                } else {
+                                    "黑方胜利（将死）！"
+                                }
+                            } else {
+                                msg = "和棋（无合法走法）🤝"
+                            }
+                            uni_showModal(ShowModalOptions(title = "对局结束", content = msg, showCancel = false, success = fun(_){
+                                resetBoard()
+                            }
+                            ))
+                        }
+                })
             }
             val onTapCell = ::gen_onTapCell_fn
             fun gen_cellClass_fn(r: Number, c: Number): String {
@@ -762,12 +918,6 @@ open class GenPagesGameGame : BasePage {
                 }
             }
             )
-            fun gen_resetBoard_fn() {
-                board.value = createInitBoard()
-                selected.value = null
-                turn.value = "white"
-            }
-            val resetBoard = ::gen_resetBoard_fn
             return fun(): Any? {
                 return _cE("view", _uM("class" to "page"), _uA(
                     _cE("view", _uM("class" to "head"), _uA(

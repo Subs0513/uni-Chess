@@ -68,7 +68,7 @@ fun tryConnectSocket(host: String, port: String, id: String): UTSPromise<SocketT
 fun initRuntimeSocketService(): UTSPromise<Boolean> {
     val hosts: String = "100.100.200.77,192.168.137.1,127.0.0.1"
     val port: String = "8090"
-    val id: String = "app-android_IHxnl1"
+    val id: String = "app-android_IMQSDj"
     if (hosts == "" || port == "" || id == "") {
         return UTSPromise.resolve(false)
     }
@@ -190,6 +190,7 @@ val GenPagesMeMeClass = CreateVueComponent(GenPagesMeMe::class.java, fun(): VueC
 )
 typealias Turn = String
 typealias Board = UTSArray<UTSArray<String?>>
+typealias EndState = String
 val GenPagesGameGameClass = CreateVueComponent(GenPagesGameGame::class.java, fun(): VueComponentOptions {
     return VueComponentOptions(type = "page", name = "", inheritAttrs = GenPagesGameGame.inheritAttrs, inject = GenPagesGameGame.inject, props = GenPagesGameGame.props, propsNeedCastKeys = GenPagesGameGame.propsNeedCastKeys, emits = GenPagesGameGame.emits, components = GenPagesGameGame.components, styles = GenPagesGameGame.styles, setup = fun(props: ComponentPublicInstance): Any? {
         return GenPagesGameGame.setup(props as GenPagesGameGame)

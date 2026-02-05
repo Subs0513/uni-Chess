@@ -4,6 +4,8 @@ import { ref, computed } from 'vue'
 type Turn = 'white' | 'black'
 type Board = (string | null)[][]
 
+type EndState = 'playing' | 'checkmate' | 'stalemate'
+
 
 const __sfc__ = defineComponent({
   __name: 'game',
@@ -343,8 +345,87 @@ function isLegalMove(b:Board,sr:number,sc:number,dr:number,dc:number,who:Turn):b
   return true
 }
 
+/* ===== ✅ 结束判断（将死/和棋） ===== */
+function hasAnyLegalMove(b: Board, who: Turn): boolean {
+  for (let sr = 0; sr < 8; sr++) {
+    for (let sc = 0; sc < 8; sc++) {
+      const p = b[sr][sc]
+      if (p == null) continue
+      if (colorOf(p) !== who) continue
+
+      for (let dr = 0; dr < 8; dr++) {
+        for (let dc = 0; dc < 8; dc++) {
+          if (isLegalMove(b, sr, sc, dr, dc, who)) return true
+        }
+      }
+    }
+  }
+  return false
+}
+
+function getEndStateForSideToMove(b: Board, sideToMove: Turn): EndState {
+  const hasMove = hasAnyLegalMove(b, sideToMove)
+  if (hasMove) return 'playing'
+  const inCheck = isKingInCheck(b, sideToMove)
+  return inCheck ? 'checkmate' : 'stalemate'
+}
+
+function opposite(who: Turn): Turn { return who == 'white' ? 'black' : 'white' }
+
+/* ===== ✅ 兵升变 ===== */
+function promotionPiece(who: Turn, choice: number): string {
+  // choice: 0=Q,1=R,2=B,3=N
+  if (who == 'white') {
+    if (choice == 1) return WR
+    if (choice == 2) return WB
+    if (choice == 3) return WN
+    return WQ
+  } else {
+    if (choice == 1) return BR
+    if (choice == 2) return BB
+    if (choice == 3) return BN
+    return BQ
+  }
+}
+
+function shouldPromote(p: string, dr: number): boolean {
+  if (p == WP && dr == 0) return true
+  if (p == BP && dr == 7) return true
+  return false
+}
+
+function askPromotion(who: Turn): Promise<number> {
+  // 返回 choice: 0..3；取消/失败返回 0（默认升后）
+  return new Promise((resolve) => {
+    uni.showActionSheet({
+      itemList: ['升后 ♕/♛', '升车 ♖/♜', '升象 ♗/♝', '升马 ♘/♞'],
+      success: (res: ShowActionSheetSuccess) => {
+        const idx: number = res.tapIndex
+        if (idx >= 0 && idx <= 3) resolve(idx)
+        else resolve(0)
+      },
+      fail: () => {
+        resolve(0)
+      }
+    })
+  })
+}
+
+async function promoteIfNeeded(b: Board, dr: number, dc: number, movedPiece: string, whoMoved: Turn) {
+  if (!shouldPromote(movedPiece, dr)) return
+  const choice = await askPromotion(whoMoved)
+  b[dr][dc] = promotionPiece(whoMoved, choice)
+}
+
+/* ===== ✅ resetBoard：只保留一份，并且放在 onTapCell 前面 ===== */
+function resetBoard(){
+  board.value=createInitBoard()
+  selected.value=null
+  turn.value='white'
+}
+
 /* ===== 交互 ===== */
-function onTapCell(r:number,c:number){
+async function onTapCell(r:number,c:number){
   const piece=board.value[r][c]
 
   if(selected.value==null){
@@ -373,10 +454,37 @@ function onTapCell(r:number,c:number){
     return
   }
 
+  // ===== 落子 =====
+  const whoMoved: Turn = turn.value
   board.value[r][c]=moving
   board.value[sr][sc]=null
   selected.value=null
-  turn.value=(turn.value=='white')?'black':'white'
+
+  // ===== ✅ 兵升变（先升变，再切回合/判终局）=====
+  await promoteIfNeeded(board.value, r, c, moving, whoMoved)
+
+  // ===== 切换回合 =====
+  const nextTurn: Turn = opposite(whoMoved)
+  turn.value = nextTurn
+
+  // ===== ✅ 结束判断：将死 / 和棋 =====
+  const endState = getEndStateForSideToMove(board.value, nextTurn)
+  if (endState != 'playing') {
+    let msg = ''
+    if (endState == 'checkmate') {
+      // nextTurn 无棋可走且被将军 => nextTurn 输，whoMoved 赢
+      msg = (whoMoved == 'white') ? '白方胜利（将死）！' : '黑方胜利（将死）！'
+    } else {
+      msg = '和棋（无合法走法）🤝'
+    }
+
+    uni.showModal({
+      title: '对局结束',
+      content: msg,
+      showCancel: false,
+      success: () => { resetBoard() }
+    })
+  }
 }
 
 function cellClass(r:number,c:number):string{
@@ -396,11 +504,6 @@ const selectedText = computed(():string=>{
 
 const turnText = computed(():string => (turn.value=='white'?'白方回合':'黑方回合'))
 
-function resetBoard(){
-  board.value=createInitBoard()
-  selected.value=null
-  turn.value='white'
-}
 
 return (): any | null => {
 
