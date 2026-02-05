@@ -1,0 +1,28 @@
+{
+  "version": "1",
+  "env": {
+    "compiler_version": "4.87"
+  },
+  "files": {
+    "pages/index/index.kt": {
+      "class": "GenPagesIndexIndex",
+      "md5": "6f110977e15d31b7b46d52fe0a81d0d586e721b2"
+    },
+    "pages/home/home.kt": {
+      "md5": "b839e90009ed7df9e1cebc03c6560db52f8232fa",
+      "class": "GenPagesHomeHome"
+    },
+    "pages/me/me.kt": {
+      "class": "GenPagesMeMe",
+      "md5": "10082399986a4c466c323111ede2984219ed5ffb"
+    },
+    "index.kt": {
+      "class": "",
+      "md5": "69fe69c510f0670c3910e210c857903dafeac126"
+    },
+    "pages/game/game.kt": {
+      "md5": "fff206ba4127c5f4f253167907b1143e13795559",
+      "class": "GenPagesGameGame"
+    }
+  }
+}

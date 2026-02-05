@@ -1,0 +1,50 @@
+<template>
+  <view class="page">
+    <text class="h1">Me</text>
+
+    <view class="section">
+      <text class="secTitle">设置（占位）</text>
+
+      <view class="row">
+        <text>音效</text>
+        <switch :checked="sound" @change="onSoundChange" />
+      </view>
+
+      <view class="row">
+        <text>震动</text>
+        <switch :checked="vibrate" @change="onVibrateChange" />
+      </view>
+
+      <view class="row">
+        <text>棋盘主题</text>
+        <text class="value">{{ theme }}</text>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script setup lang="uts">
+import { ref } from 'vue'
+
+type SwitchChangeDetail = {
+  value: boolean
+}
+
+type SwitchChangeEvent = {
+  detail: SwitchChangeDetail
+}
+
+const sound = ref(true)
+const vibrate = ref(true)
+const theme = ref('Classic')
+
+function onSoundChange(e: SwitchChangeEvent) {
+  sound.value = e.detail.value
+}
+
+function onVibrateChange(e: SwitchChangeEvent) {
+  vibrate.value = e.detail.value
+}
+</script>
+
+<style scoped src="./me.css"></style>

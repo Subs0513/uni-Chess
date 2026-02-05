@@ -1,0 +1,44 @@
+{
+  "pages": [
+    {
+      "path": "pages/home/home",
+      "style": {
+        "navigationBarTitleText": "Chess",
+        "navigationStyle": "default"
+      }
+    },
+    {
+      "path": "pages/me/me",
+      "style": {
+        "navigationBarTitleText": "Me",
+        "navigationStyle": "default"
+      }
+	},
+	{
+		"path": "pages/game/game",
+		"style": {
+			"navigationBarTitleText": ""
+		}
+	}
+  ],
+  "tabBar": {
+    "color": "#8A8A8A",
+    "selectedColor": "#1F6FEB",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "Home",
+        "iconPath": "static/tab/tab-home.png",
+        "selectedIconPath": "static/tab/tab-home-active.png"
+      },
+      {
+        "pagePath": "pages/me/me",
+        "text": "Me",
+        "iconPath": "static/tab/tab-me.png",
+        "selectedIconPath": "static/tab/tab-me-active.png"
+      }
+    ]
+  }
+}

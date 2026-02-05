@@ -1,0 +1,42 @@
+import 'D:/Programming/HBuilderX/plugins/uniapp-cli-vite/node_modules/@dcloudio/uni-console/src/runtime/app/index.ts';
+import App from './App.uvue';
+import { createSSRApp } from 'vue';
+export function createApp(): UTSJSONObject {
+    const app = createSSRApp(App);
+    return {
+        app
+    };
+}
+export function main(app: IApp) {
+    definePageRoutes();
+    defineAppConfig();
+    (createApp()['app'] as VueApp).mount(app, GenUniApp());
+}
+export class UniAppConfig extends io.dcloud.uniapp.appframe.AppConfig {
+    override name: string = "uni-Chess";
+    override appid: string = "__UNI__C4B6EBD";
+    override versionName: string = "1.0.0";
+    override versionCode: string = "100";
+    override uniCompilerVersion: string = "4.87";
+    constructor() { super(); }
+}
+import GenPagesHomeHomeClass from './pages/home/home.uvue';
+import GenPagesMeMeClass from './pages/me/me.uvue';
+import GenPagesGameGameClass from './pages/game/game.uvue';
+function definePageRoutes() {
+    __uniRoutes.push({ path: "pages/home/home", component: GenPagesHomeHomeClass, meta: { isQuit: true } as UniPageMeta, style: _uM([["navigationBarTitleText", "Chess"], ["navigationStyle", "default"]]) } as UniPageRoute);
+    __uniRoutes.push({ path: "pages/me/me", component: GenPagesMeMeClass, meta: { isQuit: false } as UniPageMeta, style: _uM([["navigationBarTitleText", "Me"], ["navigationStyle", "default"]]) } as UniPageRoute);
+    __uniRoutes.push({ path: "pages/game/game", component: GenPagesGameGameClass, meta: { isQuit: false } as UniPageMeta, style: _uM([["navigationBarTitleText", ""]]) } as UniPageRoute);
+}
+const __uniTabBar: Map<string, any | null> | null = _uM([["color", "#8A8A8A"], ["selectedColor", "#1F6FEB"], ["backgroundColor", "#FFFFFF"], ["borderStyle", "black"], ["list", [_uM([["pagePath", "pages/home/home"], ["text", "Home"], ["iconPath", "static/tab/tab-home.png"], ["selectedIconPath", "static/tab/tab-home-active.png"]]), _uM([["pagePath", "pages/me/me"], ["text", "Me"], ["iconPath", "static/tab/tab-me.png"], ["selectedIconPath", "static/tab/tab-me-active.png"]])]]]);
+const __uniLaunchPage: Map<string, any | null> = _uM([["url", "pages/home/home"], ["style", _uM([["navigationBarTitleText", "Chess"], ["navigationStyle", "default"]])]]);
+function defineAppConfig() {
+    __uniConfig.entryPagePath = '/pages/home/home';
+    __uniConfig.globalStyle = _uM();
+    __uniConfig.getTabBarConfig = (): Map<string, any> | null => _uM([["color", "#8A8A8A"], ["selectedColor", "#1F6FEB"], ["backgroundColor", "#FFFFFF"], ["borderStyle", "black"], ["list", [_uM([["pagePath", "pages/home/home"], ["text", "Home"], ["iconPath", "static/tab/tab-home.png"], ["selectedIconPath", "static/tab/tab-home-active.png"]]), _uM([["pagePath", "pages/me/me"], ["text", "Me"], ["iconPath", "static/tab/tab-me.png"], ["selectedIconPath", "static/tab/tab-me-active.png"]])]]]);
+    __uniConfig.tabBar = __uniConfig.getTabBarConfig();
+    __uniConfig.conditionUrl = '';
+    __uniConfig.uniIdRouter = new Map();
+    __uniConfig.ready = true;
+}
+//# sourceMappingURL=main.uts.map

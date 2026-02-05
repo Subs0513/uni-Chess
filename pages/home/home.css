@@ -1,0 +1,58 @@
+.page {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  margin-right: 12px;
+}
+
+.titles {
+  display: flex;
+  flex-direction: column;
+}
+
+.h1 {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.sub {
+  font-size: 12px;
+  opacity: 0.6;
+  margin-top: 2px;
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+}
+
+.card {
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
+  margin-bottom: 12px;
+}
+
+.cardTitle {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.cardDesc {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.7;
+}

@@ -1,0 +1,40 @@
+<template>
+  <view class="page">
+    <view class="header">
+      <image class="logo" src="/static/logo.png" mode="aspectFit" />
+      <view class="titles">
+        <text class="h1">uni-Chess</text>
+        <text class="sub">Home</text>
+      </view>
+    </view>
+
+    <view class="cards">
+      <view class="card" @tap="goGame('ai')">
+        <text class="cardTitle">人机对战</text>
+        <text class="cardDesc">和 AI 下棋</text>
+      </view>
+
+      <view class="card" @tap="goGame('online')">
+        <text class="cardTitle">联机对战</text>
+        <text class="cardDesc">匹配 / 房间</text>
+      </view>
+
+      <view class="card" @tap="goGame('local')">
+        <text class="cardTitle">本地双人</text>
+        <text class="cardDesc">同屏两人对弈</text>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script setup lang="uts">
+type GameMode = 'ai' | 'online' | 'local'
+
+function goGame(mode: GameMode) {
+  uni.navigateTo({
+    url: `/pages/game/game?mode=${mode}`
+  })
+}
+</script>
+
+<style scoped src="./home.css"></style>
