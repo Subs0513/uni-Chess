@@ -13,6 +13,7 @@ import io.dcloud.uts.Set
 import io.dcloud.uts.UTSAndroid
 import kotlin.properties.Delegates
 import io.dcloud.uniapp.extapi.getSystemInfoSync as uni_getSystemInfoSync
+import io.dcloud.uniapp.extapi.showToast as uni_showToast
 open class GenPagesGameGame : BasePage {
     constructor(__ins: ComponentInternalInstance, __renderer: String?) : super(__ins, __renderer) {}
     companion object {
@@ -42,6 +43,7 @@ open class GenPagesGameGame : BasePage {
                 7
             )
             val boardPx = ref<Number>(320)
+            val coordPx = ref<Number>(22)
             fun gen_clamp_fn(n: Number, minV: Number, maxV: Number): Number {
                 if (n < minV) {
                     return minV
@@ -52,16 +54,42 @@ open class GenPagesGameGame : BasePage {
                 return n
             }
             val clamp = ::gen_clamp_fn
-            fun gen_calcBoardPx_fn(): Number {
-                val info: GetSystemInfoResult = uni_getSystemInfoSync()
-                var ww: Number = info.windowWidth
-                var px = ww - 36
-                px = clamp(px, 240, 360)
-                px = px - (px % 8)
-                return px
+            fun gen_calcCoordFromCell_fn(cell: Number): Number {
+                var v = Math.floor(cell * 0.55)
+                if (v < 18) {
+                    v = 18
+                }
+                if (v > 26) {
+                    v = 26
+                }
+                return v
             }
-            val calcBoardPx = ::gen_calcBoardPx_fn
-            boardPx.value = calcBoardPx()
+            val calcCoordFromCell = ::gen_calcCoordFromCell_fn
+            fun gen_recalcSizes_fn() {
+                val info: GetSystemInfoResult = uni_getSystemInfoSync()
+                val ww: Number = info.windowWidth
+                val maxTotal = ww - 36
+                var c: Number = 22
+                var b = maxTotal - c
+                run {
+                    var i: Number = 0
+                    while(i < 3){
+                        b = clamp(b, 240, 360)
+                        b = b - (b % 8)
+                        val cell = b / 8
+                        c = calcCoordFromCell(cell)
+                        b = maxTotal - c
+                        i++
+                    }
+                }
+                b = clamp(b, 240, 360)
+                b = b - (b % 8)
+                c = calcCoordFromCell(b / 8)
+                boardPx.value = b
+                coordPx.value = c
+            }
+            val recalcSizes = ::gen_recalcSizes_fn
+            recalcSizes()
             val cellPx = computed(fun(): Number {
                 return boardPx.value / 8
             }
@@ -82,6 +110,50 @@ open class GenPagesGameGame : BasePage {
                 return "width:" + px + ";height:" + px + ";flex:0 0 " + px + ";"
             }
             )
+            val frameStyle = computed(fun(): String {
+                val w = (boardPx.value + coordPx.value).toString(10) + "px"
+                val h = (boardPx.value + coordPx.value).toString(10) + "px"
+                return "width:" + w + ";height:" + h + ";"
+            }
+            )
+            val ranksColStyle = computed(fun(): String {
+                val w = coordPx.value.toString(10) + "px"
+                val h = boardPx.value.toString(10) + "px"
+                return "width:" + w + ";height:" + h + ";"
+            }
+            )
+            val rankCellStyle = computed(fun(): String {
+                val w = coordPx.value.toString(10) + "px"
+                val h = cellPx.value.toString(10) + "px"
+                return "width:" + w + ";height:" + h + ";"
+            }
+            )
+            val filesRowStyle = computed(fun(): String {
+                val w = (boardPx.value + coordPx.value).toString(10) + "px"
+                val h = coordPx.value.toString(10) + "px"
+                return "width:" + w + ";height:" + h + ";"
+            }
+            )
+            val filesSpacerStyle = computed(fun(): String {
+                val w = coordPx.value.toString(10) + "px"
+                val h = coordPx.value.toString(10) + "px"
+                return "width:" + w + ";height:" + h + ";"
+            }
+            )
+            val fileCellStyle = computed(fun(): String {
+                val w = cellPx.value.toString(10) + "px"
+                val h = coordPx.value.toString(10) + "px"
+                return "width:" + w + ";height:" + h + ";"
+            }
+            )
+            fun gen_rankLabel_fn(r: Number): String {
+                return (8 - r).toString(10)
+            }
+            val rankLabel = ::gen_rankLabel_fn
+            fun gen_fileLabel_fn(c: Number): String {
+                return String.fromCharCode(97 + c)
+            }
+            val fileLabel = ::gen_fileLabel_fn
             val turn = ref<Turn>("white")
             open class Pos {
                 open lateinit var r: Number
@@ -207,6 +279,421 @@ open class GenPagesGameGame : BasePage {
                 return p == BR || p == BN || p == BB || p == BQ || p == BK || p == BP
             }
             val isBlackPiece = ::gen_isBlackPiece_fn
+            fun gen_colorOf_fn(p: String): Turn {
+                return if (isWhitePiece(p)) {
+                    "white"
+                } else {
+                    "black"
+                }
+            }
+            val colorOf = ::gen_colorOf_fn
+            fun gen_inBounds_fn(r: Number, c: Number): Boolean {
+                return r >= 0 && r < 8 && c >= 0 && c < 8
+            }
+            val inBounds = ::gen_inBounds_fn
+            fun gen_cloneBoard_fn(b: Board): Board {
+                val nb: Board = _uA()
+                run {
+                    var i: Number = 0
+                    while(i < 8){
+                        val nr: UTSArray<String?> = _uA()
+                        run {
+                            var j: Number = 0
+                            while(j < 8){
+                                nr.push(b[i][j])
+                                j++
+                            }
+                        }
+                        nb.push(nr)
+                        i++
+                    }
+                }
+                return nb
+            }
+            val cloneBoard = ::gen_cloneBoard_fn
+            fun gen_isEmpty_fn(b: Board, r: Number, c: Number): Boolean {
+                return b[r][c] == null
+            }
+            val isEmpty = ::gen_isEmpty_fn
+            fun gen_isEnemyAt_fn(b: Board, r: Number, c: Number, me: Turn): Boolean {
+                val p = b[r][c]
+                if (p == null) {
+                    return false
+                }
+                return if ((me == "white")) {
+                    isBlackPiece(p)
+                } else {
+                    isWhitePiece(p)
+                }
+            }
+            val isEnemyAt = ::gen_isEnemyAt_fn
+            fun gen_rayClear_fn(b: Board, sr: Number, sc: Number, dr: Number, dc: Number): Boolean {
+                val dR = dr - sr
+                val dC = dc - sc
+                val stepR = if (dR == 0) {
+                    0
+                } else {
+                    if (dR > 0) {
+                        1
+                    } else {
+                        -1
+                    }
+                }
+                val stepC = if (dC == 0) {
+                    0
+                } else {
+                    if (dC > 0) {
+                        1
+                    } else {
+                        -1
+                    }
+                }
+                var r = sr + stepR
+                var c = sc + stepC
+                while(r != dr || c != dc){
+                    if (!isEmpty(b, r, c)) {
+                        return false
+                    }
+                    r += stepR
+                    c += stepC
+                }
+                return true
+            }
+            val rayClear = ::gen_rayClear_fn
+            fun gen_pieceType_fn(p: String): String {
+                if (p == WP || p == BP) {
+                    return "P"
+                }
+                if (p == WN || p == BN) {
+                    return "N"
+                }
+                if (p == WB || p == BB) {
+                    return "B"
+                }
+                if (p == WR || p == BR) {
+                    return "R"
+                }
+                if (p == WQ || p == BQ) {
+                    return "Q"
+                }
+                return "K"
+            }
+            val pieceType = ::gen_pieceType_fn
+            fun gen_findKing_fn(b: Board, who: Turn): Pos? {
+                val k = if ((who == "white")) {
+                    WK
+                } else {
+                    BK
+                }
+                run {
+                    var r: Number = 0
+                    while(r < 8){
+                        run {
+                            var c: Number = 0
+                            while(c < 8){
+                                if (b[r][c] == k) {
+                                    return Pos(r, c)
+                                }
+                                c++
+                            }
+                        }
+                        r++
+                    }
+                }
+                return null
+            }
+            val findKing = ::gen_findKing_fn
+            fun gen_isSquareAttacked_fn(b: Board, tr: Number, tc: Number, by__1: Turn): Boolean {
+                if (by__1 == "white") {
+                    val r = tr + 1
+                    if (inBounds(r, tc - 1) && b[r][tc - 1] == WP) {
+                        return true
+                    }
+                    if (inBounds(r, tc + 1) && b[r][tc + 1] == WP) {
+                        return true
+                    }
+                } else {
+                    val r = tr - 1
+                    if (inBounds(r, tc - 1) && b[r][tc - 1] == BP) {
+                        return true
+                    }
+                    if (inBounds(r, tc + 1) && b[r][tc + 1] == BP) {
+                        return true
+                    }
+                }
+                val kd = _uA(
+                    _uA(
+                        -2,
+                        -1
+                    ),
+                    _uA(
+                        -2,
+                        1
+                    ),
+                    _uA(
+                        -1,
+                        -2
+                    ),
+                    _uA(
+                        -1,
+                        2
+                    ),
+                    _uA(
+                        1,
+                        -2
+                    ),
+                    _uA(
+                        1,
+                        2
+                    ),
+                    _uA(
+                        2,
+                        -1
+                    ),
+                    _uA(
+                        2,
+                        1
+                    )
+                )
+                run {
+                    var i: Number = 0
+                    while(i < kd.length){
+                        val rr = tr + kd[i][0]
+                        val cc = tc + kd[i][1]
+                        if (!inBounds(rr, cc)) {
+                            i++
+                            continue
+                        }
+                        val p = b[rr][cc]
+                        if (p == null) {
+                            i++
+                            continue
+                        }
+                        if (by__1 == "white" && p == WN) {
+                            return true
+                        }
+                        if (by__1 == "black" && p == BN) {
+                            return true
+                        }
+                        i++
+                    }
+                }
+                run {
+                    var rr = tr - 1
+                    while(rr <= tr + 1){
+                        run {
+                            var cc = tc - 1
+                            while(cc <= tc + 1){
+                                if (rr == tr && cc == tc) {
+                                    cc++
+                                    continue
+                                }
+                                if (!inBounds(rr, cc)) {
+                                    cc++
+                                    continue
+                                }
+                                val p = b[rr][cc]
+                                if (p == null) {
+                                    cc++
+                                    continue
+                                }
+                                if (by__1 == "white" && p == WK) {
+                                    return true
+                                }
+                                if (by__1 == "black" && p == BK) {
+                                    return true
+                                }
+                                cc++
+                            }
+                        }
+                        rr++
+                    }
+                }
+                val rd = _uA(
+                    _uA(
+                        -1,
+                        0
+                    ),
+                    _uA(
+                        1,
+                        0
+                    ),
+                    _uA(
+                        0,
+                        -1
+                    ),
+                    _uA(
+                        0,
+                        1
+                    )
+                )
+                run {
+                    var i: Number = 0
+                    while(i < rd.length){
+                        var rr = tr + rd[i][0]
+                        var cc = tc + rd[i][1]
+                        while(inBounds(rr, cc)){
+                            val p = b[rr][cc]
+                            if (p != null) {
+                                if (by__1 == "white" && (p == WR || p == WQ)) {
+                                    return true
+                                }
+                                if (by__1 == "black" && (p == BR || p == BQ)) {
+                                    return true
+                                }
+                                break
+                            }
+                            rr += rd[i][0]
+                            cc += rd[i][1]
+                        }
+                        i++
+                    }
+                }
+                val bd = _uA(
+                    _uA(
+                        -1,
+                        -1
+                    ),
+                    _uA(
+                        -1,
+                        1
+                    ),
+                    _uA(
+                        1,
+                        -1
+                    ),
+                    _uA(
+                        1,
+                        1
+                    )
+                )
+                run {
+                    var i: Number = 0
+                    while(i < bd.length){
+                        var rr = tr + bd[i][0]
+                        var cc = tc + bd[i][1]
+                        while(inBounds(rr, cc)){
+                            val p = b[rr][cc]
+                            if (p != null) {
+                                if (by__1 == "white" && (p == WB || p == WQ)) {
+                                    return true
+                                }
+                                if (by__1 == "black" && (p == BB || p == BQ)) {
+                                    return true
+                                }
+                                break
+                            }
+                            rr += bd[i][0]
+                            cc += bd[i][1]
+                        }
+                        i++
+                    }
+                }
+                return false
+            }
+            val isSquareAttacked = ::gen_isSquareAttacked_fn
+            fun gen_isKingInCheck_fn(b: Board, who: Turn): Boolean {
+                val k = findKing(b, who)
+                if (k == null) {
+                    return false
+                }
+                val opp: Turn = if ((who == "white")) {
+                    "black"
+                } else {
+                    "white"
+                }
+                return isSquareAttacked(b, k.r, k.c, opp)
+            }
+            val isKingInCheck = ::gen_isKingInCheck_fn
+            fun gen_canMovePieceRaw_fn(b: Board, sr: Number, sc: Number, dr: Number, dc: Number, who: Turn): Boolean {
+                if (!inBounds(sr, sc) || !inBounds(dr, dc)) {
+                    return false
+                }
+                if (sr == dr && sc == dc) {
+                    return false
+                }
+                val p = b[sr][sc]
+                if (p == null) {
+                    return false
+                }
+                if (colorOf(p) != who) {
+                    return false
+                }
+                val dst = b[dr][dc]
+                if (dst != null && colorOf(dst) == who) {
+                    return false
+                }
+                val t = pieceType(p)
+                val dR = dr - sr
+                val dC = dc - sc
+                val absR = Math.abs(dR)
+                val absC = Math.abs(dC)
+                if (t == "P") {
+                    val dir = if ((who == "white")) {
+                        -1
+                    } else {
+                        1
+                    }
+                    val startRow = if ((who == "white")) {
+                        6
+                    } else {
+                        1
+                    }
+                    if (dC == 0) {
+                        if (dR == dir && isEmpty(b, dr, dc)) {
+                            return true
+                        }
+                        if (sr == startRow && dR == 2 * dir) {
+                            val mid = sr + dir
+                            if (isEmpty(b, mid, sc) && isEmpty(b, dr, dc)) {
+                                return true
+                            }
+                        }
+                        return false
+                    }
+                    if (absC == 1 && dR == dir) {
+                        return isEnemyAt(b, dr, dc, who)
+                    }
+                    return false
+                }
+                if (t == "N") {
+                    return (absR == 2 && absC == 1) || (absR == 1 && absC == 2)
+                }
+                if (t == "B") {
+                    if (absR != absC) {
+                        return false
+                    }
+                    return rayClear(b, sr, sc, dr, dc)
+                }
+                if (t == "R") {
+                    if (!(dR == 0 || dC == 0)) {
+                        return false
+                    }
+                    return rayClear(b, sr, sc, dr, dc)
+                }
+                if (t == "Q") {
+                    val ok = (absR == absC) || (dR == 0 || dC == 0)
+                    if (!ok) {
+                        return false
+                    }
+                    return rayClear(b, sr, sc, dr, dc)
+                }
+                return absR <= 1 && absC <= 1
+            }
+            val canMovePieceRaw = ::gen_canMovePieceRaw_fn
+            fun gen_isLegalMove_fn(b: Board, sr: Number, sc: Number, dr: Number, dc: Number, who: Turn): Boolean {
+                if (!canMovePieceRaw(b, sr, sc, dr, dc, who)) {
+                    return false
+                }
+                val nb = cloneBoard(b)
+                nb[dr][dc] = nb[sr][sc]
+                nb[sr][sc] = null
+                if (isKingInCheck(nb, who)) {
+                    return false
+                }
+                return true
+            }
+            val isLegalMove = ::gen_isLegalMove_fn
             fun gen_onTapCell_fn(r: Number, c: Number) {
                 val piece = board.value[r][c]
                 if (selected.value == null) {
@@ -229,6 +716,11 @@ open class GenPagesGameGame : BasePage {
                 }
                 if (piece != null && ((turn.value == "white" && isWhitePiece(piece)) || (turn.value == "black" && isBlackPiece(piece)))) {
                     selected.value = Pos(r, c)
+                    return
+                }
+                val ok = isLegalMove(board.value, sr, sc, r, c, turn.value)
+                if (!ok) {
+                    uni_showToast(ShowToastOptions(title = "非法走法", icon = "none"))
                     return
                 }
                 board.value[r][c] = moving
@@ -283,26 +775,47 @@ open class GenPagesGameGame : BasePage {
                         _cE("text", _uM("class" to "sub"), _tD(turnText.value), 1)
                     )),
                     _cE("view", _uM("class" to "boardWrap"), _uA(
-                        _cE("view", _uM("class" to "board", "style" to _nS(boardStyle.value)), _uA(
-                            _cE(Fragment, null, RenderHelpers.renderList(rows, fun(r, __key, __index, _cached): Any {
-                                return _cE("view", _uM("key" to ("row_" + r), "class" to "boardRow", "style" to _nS(rowStyle.value)), _uA(
-                                    _cE(Fragment, null, RenderHelpers.renderList(cols, fun(c, __key, __index, _cached): Any {
-                                        return _cE("view", _uM("key" to (r + "_" + c), "class" to _nC(_uA(
-                                            "cell",
-                                            cellClass(r, c)
-                                        )), "style" to _nS(cellStyle.value), "onClick" to fun(){
-                                            onTapCell(r, c)
-                                        }
-                                        ), _uA(
-                                            _cE("text", _uM("class" to "piece"), _tD(pieceAt(r, c)), 1)
-                                        ), 14, _uA(
-                                            "onClick"
-                                        ))
+                        _cE("view", _uM("class" to "boardFrame", "style" to _nS(frameStyle.value)), _uA(
+                            _cE("view", _uM("class" to "boardRowWrap"), _uA(
+                                _cE("view", _uM("class" to "ranksCol", "style" to _nS(ranksColStyle.value)), _uA(
+                                    _cE(Fragment, null, RenderHelpers.renderList(rows, fun(r, __key, __index, _cached): Any {
+                                        return _cE("view", _uM("key" to ("rank_" + r), "class" to "rankCell", "style" to _nS(rankCellStyle.value)), _uA(
+                                            _cE("text", _uM("class" to "coordText"), _tD(rankLabel(r)), 1)
+                                        ), 4)
+                                    }
+                                    ), 64)
+                                ), 4),
+                                _cE("view", _uM("class" to "board", "style" to _nS(boardStyle.value)), _uA(
+                                    _cE(Fragment, null, RenderHelpers.renderList(rows, fun(r, __key, __index, _cached): Any {
+                                        return _cE("view", _uM("key" to ("row_" + r), "class" to "boardRow", "style" to _nS(rowStyle.value)), _uA(
+                                            _cE(Fragment, null, RenderHelpers.renderList(cols, fun(c, __key, __index, _cached): Any {
+                                                return _cE("view", _uM("key" to (r + "_" + c), "class" to _nC(_uA(
+                                                    "cell",
+                                                    cellClass(r, c)
+                                                )), "style" to _nS(cellStyle.value), "onClick" to fun(){
+                                                    onTapCell(r, c)
+                                                }
+                                                ), _uA(
+                                                    _cE("text", _uM("class" to "piece"), _tD(pieceAt(r, c)), 1)
+                                                ), 14, _uA(
+                                                    "onClick"
+                                                ))
+                                            }
+                                            ), 64)
+                                        ), 4)
                                     }
                                     ), 64)
                                 ), 4)
-                            }
-                            ), 64)
+                            )),
+                            _cE("view", _uM("class" to "filesRow", "style" to _nS(filesRowStyle.value)), _uA(
+                                _cE("view", _uM("class" to "filesSpacer", "style" to _nS(filesSpacerStyle.value)), null, 4),
+                                _cE(Fragment, null, RenderHelpers.renderList(cols, fun(c, __key, __index, _cached): Any {
+                                    return _cE("view", _uM("key" to ("file_" + c), "class" to "fileCell", "style" to _nS(fileCellStyle.value)), _uA(
+                                        _cE("text", _uM("class" to "coordText"), _tD(fileLabel(c)), 1)
+                                    ), 4)
+                                }
+                                ), 64)
+                            ), 4)
                         ), 4)
                     )),
                     _cE("view", _uM("class" to "panel"), _uA(
@@ -332,7 +845,7 @@ open class GenPagesGameGame : BasePage {
         }
         val styles0: Map<String, Map<String, Map<String, Any>>>
             get() {
-                return _uM("page" to _pS(_uM("paddingTop" to 18, "paddingRight" to 18, "paddingBottom" to 18, "paddingLeft" to 18, "display" to "flex", "flexDirection" to "column")), "head" to _pS(_uM("marginBottom" to 12)), "h1" to _pS(_uM("fontSize" to 20, "fontWeight" to "700")), "sub" to _pS(_uM("fontSize" to 12, "opacity" to 0.6, "marginTop" to 4)), "boardWrap" to _pS(_uM("width" to "100%", "display" to "flex", "justifyContent" to "center", "marginBottom" to 14)), "board" to _pS(_uM("borderTopLeftRadius" to 14, "borderTopRightRadius" to 14, "borderBottomRightRadius" to 14, "borderBottomLeftRadius" to 14, "overflow" to "hidden", "borderTopWidth" to 1, "borderRightWidth" to 1, "borderBottomWidth" to 1, "borderLeftWidth" to 1, "borderTopStyle" to "solid", "borderRightStyle" to "solid", "borderBottomStyle" to "solid", "borderLeftStyle" to "solid", "borderTopColor" to "rgba(0,0,0,0.12)", "borderRightColor" to "rgba(0,0,0,0.12)", "borderBottomColor" to "rgba(0,0,0,0.12)", "borderLeftColor" to "rgba(0,0,0,0.12)", "boxSizing" to "border-box", "display" to "flex", "flexDirection" to "column")), "boardRow" to _pS(_uM("display" to "flex", "flexDirection" to "row")), "cell" to _pS(_uM("display" to "flex", "alignItems" to "center", "justifyContent" to "center", "boxSizing" to "border-box", "flexShrink" to 0)), "light" to _pS(_uM("backgroundImage" to "none", "backgroundColor" to "#f0d9b5")), "dark" to _pS(_uM("backgroundImage" to "none", "backgroundColor" to "#b58863")), "selected" to _pS(_uM("borderTopWidth" to 3, "borderRightWidth" to 3, "borderBottomWidth" to 3, "borderLeftWidth" to 3, "borderTopStyle" to "solid", "borderRightStyle" to "solid", "borderBottomStyle" to "solid", "borderLeftStyle" to "solid", "borderTopColor" to "rgba(31,111,235,0.9)", "borderRightColor" to "rgba(31,111,235,0.9)", "borderBottomColor" to "rgba(31,111,235,0.9)", "borderLeftColor" to "rgba(31,111,235,0.9)", "boxShadow" to "inset 0 0 0 1px rgba(255,255,255,0.25)")), "piece" to _pS(_uM("fontSize" to 26, "lineHeight" to "26px")), "panel" to _pS(_uM("paddingTop" to 14, "paddingRight" to 14, "paddingBottom" to 14, "paddingLeft" to 14, "borderTopLeftRadius" to 14, "borderTopRightRadius" to 14, "borderBottomRightRadius" to 14, "borderBottomLeftRadius" to 14, "borderTopWidth" to 1, "borderRightWidth" to 1, "borderBottomWidth" to 1, "borderLeftWidth" to 1, "borderTopStyle" to "solid", "borderRightStyle" to "solid", "borderBottomStyle" to "solid", "borderLeftStyle" to "solid", "borderTopColor" to "rgba(0,0,0,0.08)", "borderRightColor" to "rgba(0,0,0,0.08)", "borderBottomColor" to "rgba(0,0,0,0.08)", "borderLeftColor" to "rgba(0,0,0,0.08)", "backgroundImage" to "none", "backgroundColor" to "rgba(0,0,0,0.02)")), "rowInfo" to _pS(_uM("display" to "flex", "alignItems" to "center", "justifyContent" to "space-between", "paddingTop" to 8, "paddingRight" to 0, "paddingBottom" to 8, "paddingLeft" to 0, "borderTopWidth" to 1, "borderTopStyle" to "solid", "borderTopColor" to "rgba(0,0,0,0.06)")), "rowFirst" to _pS(_uM("borderTopWidth" to "medium", "borderTopStyle" to "none", "borderTopColor" to "#000000", "paddingTop" to 0)), "label" to _pS(_uM("fontSize" to 12, "opacity" to 0.6)), "value" to _pS(_uM("fontSize" to 14, "fontWeight" to "700")), "btns" to _pS(_uM("marginTop" to 12)), "btn" to _pS(_uM("height" to 42, "borderTopLeftRadius" to 12, "borderTopRightRadius" to 12, "borderBottomRightRadius" to 12, "borderBottomLeftRadius" to 12, "backgroundImage" to "none", "backgroundColor" to "rgba(31,111,235,0.12)", "borderTopWidth" to 1, "borderRightWidth" to 1, "borderBottomWidth" to 1, "borderLeftWidth" to 1, "borderTopStyle" to "solid", "borderRightStyle" to "solid", "borderBottomStyle" to "solid", "borderLeftStyle" to "solid", "borderTopColor" to "rgba(31,111,235,0.25)", "borderRightColor" to "rgba(31,111,235,0.25)", "borderBottomColor" to "rgba(31,111,235,0.25)", "borderLeftColor" to "rgba(31,111,235,0.25)", "display" to "flex", "alignItems" to "center", "justifyContent" to "center")), "btnText" to _pS(_uM("fontSize" to 14, "fontWeight" to "700")))
+                return _uM("page" to _pS(_uM("paddingTop" to 18, "paddingRight" to 18, "paddingBottom" to 18, "paddingLeft" to 18, "display" to "flex", "flexDirection" to "column")), "head" to _pS(_uM("marginBottom" to 12)), "h1" to _pS(_uM("fontSize" to 20, "fontWeight" to "700")), "sub" to _pS(_uM("fontSize" to 12, "opacity" to 0.6, "marginTop" to 4)), "boardWrap" to _pS(_uM("width" to "100%", "display" to "flex", "justifyContent" to "center", "marginBottom" to 14)), "boardFrame" to _pS(_uM("display" to "flex", "flexDirection" to "column", "borderTopLeftRadius" to 0, "borderTopRightRadius" to 0, "borderBottomRightRadius" to 0, "borderBottomLeftRadius" to 0, "overflow" to "hidden", "borderTopWidth" to "medium", "borderRightWidth" to "medium", "borderBottomWidth" to "medium", "borderLeftWidth" to "medium", "borderTopStyle" to "none", "borderRightStyle" to "none", "borderBottomStyle" to "none", "borderLeftStyle" to "none", "borderTopColor" to "#000000", "borderRightColor" to "#000000", "borderBottomColor" to "#000000", "borderLeftColor" to "#000000", "backgroundImage" to "none", "backgroundColor" to "rgba(0,0,0,0)", "boxSizing" to "border-box")), "boardRowWrap" to _pS(_uM("display" to "flex", "flexDirection" to "row")), "ranksCol" to _pS(_uM("display" to "flex", "flexDirection" to "column", "backgroundImage" to "none", "backgroundColor" to "rgba(0,0,0,0)", "boxSizing" to "border-box")), "rankCell" to _pS(_uM("display" to "flex", "alignItems" to "center", "justifyContent" to "center", "boxSizing" to "border-box")), "filesRow" to _pS(_uM("display" to "flex", "flexDirection" to "row", "alignItems" to "center", "backgroundImage" to "none", "backgroundColor" to "rgba(0,0,0,0)", "boxSizing" to "border-box")), "filesSpacer" to _pS(_uM("flexShrink" to 0, "backgroundImage" to "none", "backgroundColor" to "rgba(0,0,0,0)")), "fileCell" to _pS(_uM("display" to "flex", "alignItems" to "center", "justifyContent" to "center", "boxSizing" to "border-box")), "coordText" to _pS(_uM("fontSize" to 12, "opacity" to 0.6, "fontWeight" to "700")), "board" to _pS(_uM("overflow" to "hidden", "boxSizing" to "border-box", "display" to "flex", "flexDirection" to "column")), "boardRow" to _pS(_uM("display" to "flex", "flexDirection" to "row")), "cell" to _pS(_uM("display" to "flex", "alignItems" to "center", "justifyContent" to "center", "boxSizing" to "border-box", "flexShrink" to 0)), "light" to _pS(_uM("backgroundImage" to "none", "backgroundColor" to "#f0d9b5")), "dark" to _pS(_uM("backgroundImage" to "none", "backgroundColor" to "#b58863")), "selected" to _pS(_uM("borderTopWidth" to 3, "borderRightWidth" to 3, "borderBottomWidth" to 3, "borderLeftWidth" to 3, "borderTopStyle" to "solid", "borderRightStyle" to "solid", "borderBottomStyle" to "solid", "borderLeftStyle" to "solid", "borderTopColor" to "rgba(31,111,235,0.9)", "borderRightColor" to "rgba(31,111,235,0.9)", "borderBottomColor" to "rgba(31,111,235,0.9)", "borderLeftColor" to "rgba(31,111,235,0.9)", "boxShadow" to "inset 0 0 0 1px rgba(255,255,255,0.25)")), "piece" to _pS(_uM("fontSize" to 26, "lineHeight" to "26px")), "panel" to _pS(_uM("paddingTop" to 14, "paddingRight" to 14, "paddingBottom" to 14, "paddingLeft" to 14, "borderTopLeftRadius" to 14, "borderTopRightRadius" to 14, "borderBottomRightRadius" to 14, "borderBottomLeftRadius" to 14, "borderTopWidth" to 1, "borderRightWidth" to 1, "borderBottomWidth" to 1, "borderLeftWidth" to 1, "borderTopStyle" to "solid", "borderRightStyle" to "solid", "borderBottomStyle" to "solid", "borderLeftStyle" to "solid", "borderTopColor" to "rgba(0,0,0,0.08)", "borderRightColor" to "rgba(0,0,0,0.08)", "borderBottomColor" to "rgba(0,0,0,0.08)", "borderLeftColor" to "rgba(0,0,0,0.08)", "backgroundImage" to "none", "backgroundColor" to "rgba(0,0,0,0.02)")), "rowInfo" to _pS(_uM("display" to "flex", "alignItems" to "center", "justifyContent" to "space-between", "paddingTop" to 8, "paddingRight" to 0, "paddingBottom" to 8, "paddingLeft" to 0, "borderTopWidth" to 1, "borderTopStyle" to "solid", "borderTopColor" to "rgba(0,0,0,0.06)")), "rowFirst" to _pS(_uM("borderTopWidth" to "medium", "borderTopStyle" to "none", "borderTopColor" to "#000000", "paddingTop" to 0)), "label" to _pS(_uM("fontSize" to 12, "opacity" to 0.6)), "value" to _pS(_uM("fontSize" to 14, "fontWeight" to "700")), "btns" to _pS(_uM("marginTop" to 12)), "btn" to _pS(_uM("height" to 42, "borderTopLeftRadius" to 12, "borderTopRightRadius" to 12, "borderBottomRightRadius" to 12, "borderBottomLeftRadius" to 12, "backgroundImage" to "none", "backgroundColor" to "rgba(31,111,235,0.12)", "borderTopWidth" to 1, "borderRightWidth" to 1, "borderBottomWidth" to 1, "borderLeftWidth" to 1, "borderTopStyle" to "solid", "borderRightStyle" to "solid", "borderBottomStyle" to "solid", "borderLeftStyle" to "solid", "borderTopColor" to "rgba(31,111,235,0.25)", "borderRightColor" to "rgba(31,111,235,0.25)", "borderBottomColor" to "rgba(31,111,235,0.25)", "borderLeftColor" to "rgba(31,111,235,0.25)", "display" to "flex", "alignItems" to "center", "justifyContent" to "center")), "btnText" to _pS(_uM("fontSize" to 14, "fontWeight" to "700")))
             }
         var inheritAttrs = true
         var inject: Map<String, Map<String, Any?>> = _uM()

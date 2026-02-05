@@ -26,11 +26,75 @@
   margin-bottom: 14px;
 }
 
-/* 棋盘尺寸由 uvue 动态注入 */
-.board {
-  border-radius: 14px;
+/* ===== 坐标框整体 ===== */
+.boardFrame {
+  display: flex;
+  flex-direction: column;
+  /* 去掉圆角 */
+  border-radius: 0;
+  /* 可以保留，也可以去掉 */
   overflow: hidden;
-  border: 1px solid rgba(0,0,0,0.12);
+  /* 外框 */
+  border: none;
+
+  background: transparent;
+  box-sizing: border-box;
+}
+
+
+.boardRowWrap {
+  display: flex;
+  flex-direction: row;
+}
+
+/* 左侧 8-1 */
+.ranksCol {
+  display: flex;
+  flex-direction: column;
+  /* ✅ 不要灰底 */
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.rankCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+/* 底部 a-h */
+.filesRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  /* ✅ 不要灰底 */
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.filesSpacer {
+  flex-shrink: 0;
+  /* ✅ 不要灰底 */
+  background: transparent;
+}
+
+.fileCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.coordText {
+  font-size: 12px;
+  opacity: 0.6;
+  font-weight: 700;
+}
+
+/* ===== 棋盘本体 ===== */
+.board {
+  overflow: hidden;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
